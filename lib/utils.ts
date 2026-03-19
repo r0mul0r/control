@@ -59,7 +59,7 @@ export function canManageShifts(role: UserRole) {
 }
 
 export function canManageEmployees(role: UserRole) {
-  return role === 'admin'
+  return ['admin', 'co_admin'].includes(role)
 }
 
 export function canViewAllData(role: UserRole) {

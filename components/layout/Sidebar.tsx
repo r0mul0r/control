@@ -35,7 +35,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Empleados',
     href: '/empleados',
     icon: Users,
-    roles: ['admin', 'co_admin', 'hr'],
+    roles: ['admin', 'co_admin', 'hr', 'supervisor'],
   },
   {
     label: 'Novedades',

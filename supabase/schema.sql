@@ -144,14 +144,14 @@ create policy "Admin can manage shifts"
   );
 
 -- Employees policies
-create policy "Admin can manage employees"
+create policy "Admin and co-admin can manage employees"
   on employees for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    exists (select 1 from profiles where id = auth.uid() and role in ('admin', 'co_admin'))
   );
 
-create policy "Co-admin and HR can view employees"
+create policy "HR can view employees"
   on employees for select using (
-    exists (select 1 from profiles where id = auth.uid() and role in ('co_admin', 'hr'))
+    exists (select 1 from profiles where id = auth.uid() and role = 'hr')
   );
 
 create policy "Supervisor can view their shift employees"

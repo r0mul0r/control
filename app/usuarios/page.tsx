@@ -55,11 +55,6 @@ export default function UsuariosPage() {
     setFormError('')
     setSaving(true)
 
-    const { error } = await supabase.auth.admin
-      ? (() => ({ error: new Error('Admin API not available from client') }))()
-      : { error: new Error('') }
-
-    // Use signUp with metadata instead
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: createForm.email,
       password: createForm.password,
