@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { createClient } from '@/lib/supabase/client'
@@ -20,6 +21,7 @@ interface Stats {
 
 export default function DashboardPage() {
   const { profile, loading: authLoading } = useAuth()
+  const router = useRouter()
   const supabase = createClient()
   const [stats, setStats] = useState<Stats>({ shifts: 0, employees: 0, novelties: 0, shiftChanges: 0 })
   const [recentNovelties, setRecentNovelties] = useState<(Novelty & { shift: Shift })[]>([])
@@ -85,7 +87,10 @@ export default function DashboardPage() {
     </div>
   )
 
-  if (!profile) return null
+  if (!profile) {
+    router.replace('/login')
+    return null
+  }
 
   const statCards = [
     {
