@@ -19,7 +19,7 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
   const [stats, setStats] = useState<Stats>({ shifts: 0, employees: 0, novelties: 0, shiftChanges: 0 })
   const [recentNovelties, setRecentNovelties] = useState<(Novelty & { shift: Shift })[]>([])
@@ -78,6 +78,12 @@ export default function DashboardPage() {
 
     load()
   }, [profile])
+
+  if (authLoading) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   if (!profile) return null
 
