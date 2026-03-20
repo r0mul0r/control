@@ -38,7 +38,7 @@ export function formatDate(dateStr: string) {
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Administrador',
-  co_admin: 'Co-Administrador',
+  co_admin: 'Supervisor General',
   supervisor: 'Supervisor',
   hr: 'Recursos Humanos',
 }
@@ -59,7 +59,7 @@ export function canManageShifts(role: UserRole) {
 }
 
 export function canManageEmployees(role: UserRole) {
-  return ['admin', 'co_admin'].includes(role)
+  return role === 'admin'
 }
 
 export function canViewAllData(role: UserRole) {

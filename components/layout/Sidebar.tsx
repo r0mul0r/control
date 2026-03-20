@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Users, Clock, FileText, LogOut,
@@ -61,6 +61,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
 export default function Sidebar() {
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
 
   if (!profile) return null
@@ -125,7 +126,7 @@ export default function Sidebar() {
       {/* Sign out */}
       <div className="p-2 border-t border-gray-200 dark:border-gray-700">
         <button
-          onClick={signOut}
+          onClick={() => signOut().then(() => router.replace('/login'))}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 group"
         >
           <LogOut size={18} className="group-hover:text-red-500 transition-colors" />
