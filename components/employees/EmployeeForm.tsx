@@ -69,12 +69,25 @@ export default function EmployeeForm({ employee, shifts, onSuccess, onCancel }: 
         error={errors.document_id}
         placeholder="12345678"
       />
-      <Input
+      <Select
         label="Cargo / Posición"
         value={form.position}
         onChange={e => setForm({ ...form, position: e.target.value })}
         error={errors.position}
-        placeholder="Operador"
+        placeholder="Seleccionar cargo..."
+        options={[
+          { value: 'Operador en entrenamiento', label: 'Operador en entrenamiento' },
+          { value: 'Operador básico', label: 'Operador básico' },
+          { value: 'Operador intermedio', label: 'Operador intermedio' },
+          { value: 'Operador avanzado', label: 'Operador avanzado' },
+          { value: 'Operador administrativo', label: 'Operador administrativo' },
+          { value: 'Operador administrativo en entrenamiento', label: 'Operador administrativo en entrenamiento' },
+          { value: 'Supervisor de chats', label: 'Supervisor de chats' },
+          { value: 'Supervisor en entrenamiento', label: 'Supervisor en entrenamiento' },
+          { value: 'Supervisor', label: 'Supervisor' },
+          { value: 'Supervisor general', label: 'Supervisor general' },
+          { value: 'Supervisor master', label: 'Supervisor master' },
+        ]}
       />
       <Select
         label="Turno"
