@@ -29,6 +29,8 @@ export default function EmpleadosPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | undefined>()
   const [confirmDeactivate, setConfirmDeactivate] = useState<Employee | null>(null)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 10
 
   const loadData = async () => {
     const [empsRes, shiftsRes] = await Promise.all([
@@ -51,6 +53,8 @@ export default function EmpleadosPage() {
 
   const canEdit = profile ? canManageEmployees(profile.role) : false
 
+  const resetPage = () => setPage(1)
+
   const filtered = employees.filter(emp => {
     const matchSearch = search === '' ||
       emp.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -63,6 +67,9 @@ export default function EmpleadosPage() {
       (filterActive === 'inactive' && !emp.is_active)
     return matchSearch && matchShift && matchActive
   })
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <DashboardLayout>
@@ -92,13 +99,13 @@ export default function EmpleadosPage() {
               type="text"
               placeholder="Buscar por nombre, documento o cargo..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); resetPage() }}
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <select
             value={filterShift}
-            onChange={e => setFilterShift(e.target.value)}
+            onChange={e => { setFilterShift(e.target.value); resetPage() }}
             className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos los turnos</option>
@@ -108,7 +115,7 @@ export default function EmpleadosPage() {
             {(['active', 'inactive', 'all'] as const).map(v => (
               <button
                 key={v}
-                onClick={() => setFilterActive(v)}
+                onClick={() => { setFilterActive(v); resetPage() }}
                 className={`px-3 py-2 text-xs font-medium transition-colors ${
                   filterActive === v
                     ? 'bg-blue-600 text-white'
@@ -151,7 +158,7 @@ export default function EmpleadosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {filtered.map(emp => (
+                  {paginated.map(emp => (
                     <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -200,7 +207,7 @@ export default function EmpleadosPage() {
 
             {/* Mobile cards */}
             <div className="md:hidden space-y-2">
-              {filtered.map(emp => (
+              {paginated.map(emp => (
                 <div key={emp.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -241,6 +248,44 @@ export default function EmpleadosPage() {
                 </div>
               ))}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    ←
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                        p === page
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    →
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
