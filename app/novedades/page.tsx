@@ -42,8 +42,10 @@ export default function NovedadesPage() {
         shift:shifts(*),
         supervisor:profiles!novelties_supervisor_id_fkey(*),
         received_from_supervisor:profiles!novelties_received_from_supervisor_id_fkey(*),
+        handed_to_supervisor:profiles!novelties_handed_to_supervisor_id_fkey(*),
         novelty_operators(*, employee:employees(*, shift:shifts(*))),
-        shift_changes(*, employee:employees(*), from_shift:shifts!shift_changes_from_shift_id_fkey(*), to_shift:shifts!shift_changes_to_shift_id_fkey(*))
+        shift_changes(*, employee:employees(*), from_shift:shifts!shift_changes_from_shift_id_fkey(*), to_shift:shifts!shift_changes_to_shift_id_fkey(*)),
+        handover_operators:novelty_handover_operators(*, employee:employees(*))
       `)
       .order('received_at', { ascending: false })
 

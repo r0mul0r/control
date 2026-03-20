@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button'
 import Toggle from '@/components/ui/Toggle'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
-import { UserCheck, ArrowLeftRight, Users } from 'lucide-react'
+import { ArrowLeftRight, Users, ArrowDown, ArrowUp } from 'lucide-react'
 
 interface ShiftChangeEntry {
   employee_id: string
@@ -23,7 +23,64 @@ interface Props {
   supervisors: Profile[]
   onSuccess: () => void
   onCancel: () => void
-  supervisorShiftId?: string // for supervisor role: pre-select their shift
+  supervisorShiftId?: string
+}
+
+function EmployeePicker({
+  employees,
+  selected,
+  onChange,
+  max = 3,
+}: {
+  employees: Employee[]
+  selected: string[]
+  onChange: (ids: string[]) => void
+  max?: number
+}) {
+  const toggle = (id: string) => {
+    if (selected.includes(id)) {
+      onChange(selected.filter(s => s !== id))
+    } else if (selected.length < max) {
+      onChange([...selected, id])
+    }
+  }
+
+  if (employees.length === 0) {
+    return <p className="text-xs text-gray-400 italic">Sin operadores disponibles</p>
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+        {employees.map(emp => {
+          const isSelected = selected.includes(emp.id)
+          const isDisabled = !isSelected && selected.length >= max
+          return (
+            <button
+              key={emp.id}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => toggle(emp.id)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                isSelected
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : isDisabled
+                  ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500'
+                  : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 dark:bg-gray-700 dark:border-gray-500 dark:text-gray-300'
+              }`}
+            >
+              {emp.full_name}
+            </button>
+          )
+        })}
+      </div>
+      {selected.length > 0 && (
+        <p className="text-xs text-blue-600 dark:text-blue-400">
+          {selected.length}/{max} seleccionado{selected.length !== 1 ? 's' : ''}
+        </p>
+      )}
+    </div>
+  )
 }
 
 export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, supervisorShiftId }: Props) {
@@ -33,9 +90,13 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
   const [form, setForm] = useState({
     shift_id: supervisorShiftId || '',
     received_from_supervisor_id: '',
+    handed_to_supervisor_id: '',
     received_at: new Date().toISOString().slice(0, 16),
     notes: '',
   })
+  const [receivedFromOperators, setReceivedFromOperators] = useState<string[]>([])
+  const [handedToOperators, setHandedToOperators] = useState<string[]>([])
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([])
   const [shiftEmployees, setShiftEmployees] = useState<Employee[]>([])
   const [operatorPresence, setOperatorPresence] = useState<Record<string, boolean>>({})
   const [shiftChanges, setShiftChanges] = useState<ShiftChangeEntry[]>([])
@@ -43,7 +104,18 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
   const [loadingEmployees, setLoadingEmployees] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Load employees when shift changes
+  // Load all employees for handover pickers
+  useEffect(() => {
+    supabase
+      .from('employees')
+      .select('*')
+      .eq('is_active', true)
+      .order('full_name')
+      .then(({ data }) => setAllEmployees((data as Employee[]) || []))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Load shift employees when shift changes
   useEffect(() => {
     if (!form.shift_id) {
       setShiftEmployees([])
@@ -65,6 +137,7 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
         setOperatorPresence(presence)
         setLoadingEmployees(false)
       })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.shift_id])
 
   const toggleEmployeeChange = (emp: Employee) => {
@@ -103,13 +176,13 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
     try {
       const supervisorId = profile!.id
 
-      // Create novelty
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: novelty, error: novErr } = await (supabase.from('novelties') as any)
         .insert({
           shift_id: form.shift_id,
           supervisor_id: supervisorId,
           received_from_supervisor_id: form.received_from_supervisor_id || null,
+          handed_to_supervisor_id: form.handed_to_supervisor_id || null,
           received_at: new Date(form.received_at).toISOString(),
           notes: form.notes || null,
         })
@@ -121,7 +194,7 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const noveltyData = novelty as any
 
-      // Insert novelty operators
+      // Insert novelty operators (shift presence)
       if (shiftEmployees.length > 0) {
         await supabase.from('novelty_operators').insert(
           shiftEmployees.map(emp => ({
@@ -148,6 +221,24 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
         )
       }
 
+      // Insert handover operators
+      const handoverRows = [
+        ...receivedFromOperators.map(emp_id => ({
+          novelty_id: noveltyData.id,
+          employee_id: emp_id,
+          direction: 'received_from' as const,
+        })),
+        ...handedToOperators.map(emp_id => ({
+          novelty_id: noveltyData.id,
+          employee_id: emp_id,
+          direction: 'handed_to' as const,
+        })),
+      ]
+      if (handoverRows.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('novelty_handover_operators') as any).insert(handoverRows)
+      }
+
       onSuccess()
     } catch (err) {
       console.error(err)
@@ -161,7 +252,7 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Shift select — only for non-supervisor */}
+      {/* Shift select */}
       {!supervisorShiftId && (
         <Select
           label="Turno"
@@ -179,24 +270,65 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Input
+        label="Fecha y hora"
+        type="datetime-local"
+        value={form.received_at}
+        onChange={e => setForm({ ...form, received_at: e.target.value })}
+        error={errors.received_at}
+      />
+
+      {/* Recibí el turno de */}
+      <div className="border border-green-200 dark:border-green-800/50 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <ArrowDown size={15} className="text-green-500" />
+          Recibí el turno de
+        </div>
         <Select
-          label="Recibí turno de (supervisor)"
+          label="Supervisor"
           value={form.received_from_supervisor_id}
           onChange={e => setForm({ ...form, received_from_supervisor_id: e.target.value })}
           placeholder="Seleccionar supervisor..."
           options={supervisorsFiltered.map(s => ({ value: s.id, label: s.full_name }))}
         />
-        <Input
-          label="Fecha y hora de recibo"
-          type="datetime-local"
-          value={form.received_at}
-          onChange={e => setForm({ ...form, received_at: e.target.value })}
-          error={errors.received_at}
-        />
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            Operadores <span className="font-normal text-gray-400 text-xs">(máx. 3)</span>
+          </label>
+          <EmployeePicker
+            employees={allEmployees}
+            selected={receivedFromOperators}
+            onChange={setReceivedFromOperators}
+          />
+        </div>
       </div>
 
-      {/* Operators section */}
+      {/* Le entregué el turno a */}
+      <div className="border border-amber-200 dark:border-amber-800/50 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <ArrowUp size={15} className="text-amber-500" />
+          Le entregué el turno a
+        </div>
+        <Select
+          label="Supervisor"
+          value={form.handed_to_supervisor_id}
+          onChange={e => setForm({ ...form, handed_to_supervisor_id: e.target.value })}
+          placeholder="Seleccionar supervisor..."
+          options={supervisorsFiltered.map(s => ({ value: s.id, label: s.full_name }))}
+        />
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            Operadores <span className="font-normal text-gray-400 text-xs">(máx. 3)</span>
+          </label>
+          <EmployeePicker
+            employees={allEmployees}
+            selected={handedToOperators}
+            onChange={setHandedToOperators}
+          />
+        </div>
+      </div>
+
+      {/* Operators in shift */}
       {form.shift_id && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -228,7 +360,6 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
                       </div>
                     </div>
 
-                    {/* Shift change toggle */}
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         type="button"
@@ -244,7 +375,6 @@ export default function NoveltyForm({ shifts, supervisors, onSuccess, onCancel, 
                       </button>
                     </div>
 
-                    {/* Shift change details */}
                     {hasChange && changeEntry && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                         <Select

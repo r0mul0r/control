@@ -105,6 +105,7 @@ export interface Database {
           shift_id: string
           supervisor_id: string
           received_from_supervisor_id: string | null
+          handed_to_supervisor_id: string | null
           received_at: string
           notes: string | null
           created_at: string
@@ -115,6 +116,7 @@ export interface Database {
           shift_id: string
           supervisor_id: string
           received_from_supervisor_id?: string | null
+          handed_to_supervisor_id?: string | null
           received_at: string
           notes?: string | null
           created_at?: string
@@ -125,9 +127,33 @@ export interface Database {
           shift_id?: string
           supervisor_id?: string
           received_from_supervisor_id?: string | null
+          handed_to_supervisor_id?: string | null
           received_at?: string
           notes?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      novelty_handover_operators: {
+        Row: {
+          id: string
+          novelty_id: string
+          employee_id: string
+          direction: 'received_from' | 'handed_to'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          novelty_id: string
+          employee_id: string
+          direction: 'received_from' | 'handed_to'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          novelty_id?: string
+          employee_id?: string
+          direction?: 'received_from' | 'handed_to'
         }
         Relationships: []
       }
@@ -198,6 +224,7 @@ export type Shift = Database['public']['Tables']['shifts']['Row']
 export type Employee = Database['public']['Tables']['employees']['Row']
 export type Novelty = Database['public']['Tables']['novelties']['Row']
 export type NoveltyOperator = Database['public']['Tables']['novelty_operators']['Row']
+export type NoveltyHandoverOperator = Database['public']['Tables']['novelty_handover_operators']['Row']
 export type ShiftChange = Database['public']['Tables']['shift_changes']['Row']
 
 export type EmployeeWithShift = Employee & { shift: Shift }
@@ -205,6 +232,8 @@ export type NoveltyWithDetails = Novelty & {
   shift: Shift
   supervisor: Profile
   received_from_supervisor: Profile | null
+  handed_to_supervisor: Profile | null
   novelty_operators: (NoveltyOperator & { employee: EmployeeWithShift })[]
   shift_changes: (ShiftChange & { employee: Employee; from_shift: Shift; to_shift: Shift })[]
+  handover_operators: (NoveltyHandoverOperator & { employee: Employee })[]
 }

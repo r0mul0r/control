@@ -45,7 +45,7 @@ export default function NoveltyCard({ novelty }: Props) {
         </div>
 
         {/* Supervisor info */}
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+        <div className="mt-3 space-y-1.5 text-sm">
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <User size={14} className="text-blue-500 shrink-0" />
             <span className="text-xs">
@@ -53,12 +53,31 @@ export default function NoveltyCard({ novelty }: Props) {
               {novelty.supervisor?.full_name}
             </span>
           </div>
-          {novelty.received_from_supervisor && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <ArrowLeftRight size={14} className="text-green-500 shrink-0" />
+
+          {/* Received from */}
+          {(novelty.received_from_supervisor || novelty.handover_operators?.filter(o => o.direction === 'received_from').length > 0) && (
+            <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400">
+              <ArrowLeftRight size={14} className="text-green-500 shrink-0 mt-0.5" />
               <span className="text-xs">
                 <span className="font-medium text-gray-700 dark:text-gray-300">Recibí de: </span>
-                {novelty.received_from_supervisor.full_name}
+                {[
+                  novelty.received_from_supervisor?.full_name,
+                  ...((novelty.handover_operators ?? []).filter(o => o.direction === 'received_from').map(o => o.employee?.full_name)),
+                ].filter(Boolean).join(', ')}
+              </span>
+            </div>
+          )}
+
+          {/* Handed to */}
+          {(novelty.handed_to_supervisor || novelty.handover_operators?.filter(o => o.direction === 'handed_to').length > 0) && (
+            <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400">
+              <ArrowLeftRight size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <span className="text-xs">
+                <span className="font-medium text-gray-700 dark:text-gray-300">Entregué a: </span>
+                {[
+                  novelty.handed_to_supervisor?.full_name,
+                  ...((novelty.handover_operators ?? []).filter(o => o.direction === 'handed_to').map(o => o.employee?.full_name)),
+                ].filter(Boolean).join(', ')}
               </span>
             </div>
           )}
