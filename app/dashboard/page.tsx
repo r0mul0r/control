@@ -20,7 +20,7 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const { profile, loading: authLoading } = useAuth()
+  const { user, profile, loading: authLoading, profileLoading } = useAuth()
   const router = useRouter()
   const supabase = createClient()
   const [stats, setStats] = useState<Stats>({ shifts: 0, employees: 0, novelties: 0, shiftChanges: 0 })
@@ -81,15 +81,39 @@ export default function DashboardPage() {
     load()
   }, [profile])
 
-  if (authLoading) return (
+  if (authLoading || profileLoading) return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
-  if (!profile) {
+  // Not authenticated → go to login
+  if (!user) {
     router.replace('/login')
     return null
+  }
+
+  // Authenticated but no profile → show error (avoids loop with middleware)
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 max-w-sm w-full text-center">
+          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users size={24} className="text-red-600" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Perfil no configurado</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Tu cuenta existe pero no tiene un perfil asignado. Contacta al administrador.
+          </p>
+          <button
+            onClick={() => supabase.auth.signOut().then(() => router.replace('/login'))}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    )
   }
 
   const statCards = [
