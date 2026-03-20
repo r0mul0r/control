@@ -22,6 +22,7 @@ export default function EmployeeForm({ employee, shifts, onSuccess, onCancel }: 
     shift_id: employee?.shift_id || '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
@@ -38,14 +39,21 @@ export default function EmployeeForm({ employee, shifts, onSuccess, onCancel }: 
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    setServerError(null)
     setLoading(true)
     try {
-      if (employee) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('employees') as any).update(form).eq('id', employee.id)
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('employees') as any).insert(form)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = employee
+        ? await (supabase.from('employees') as any).update(form).eq('id', employee.id)
+        : await (supabase.from('employees') as any).insert(form)
+
+      if (error) {
+        if (error.code === '23505') {
+          setServerError('Ya existe un empleado con ese número de documento.')
+        } else {
+          setServerError('Ocurrió un error al guardar. Intenta de nuevo.')
+        }
+        return
       }
       onSuccess()
     } finally {
@@ -97,6 +105,11 @@ export default function EmployeeForm({ employee, shifts, onSuccess, onCancel }: 
         placeholder="Seleccionar turno..."
         options={shifts.map(s => ({ value: s.id, label: s.name }))}
       />
+      {serverError && (
+        <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+          {serverError}
+        </p>
+      )}
       <div className="flex gap-3 pt-2">
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>
         <Button type="submit" disabled={loading} className="flex-1">
