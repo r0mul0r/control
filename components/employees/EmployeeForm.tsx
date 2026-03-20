@@ -76,17 +76,17 @@ export default function EmployeeForm({ employee, shifts, onSuccess, onCancel }: 
         error={errors.position}
         placeholder="Seleccionar cargo..."
         options={[
-          { value: 'Operador en entrenamiento', label: 'Operador en entrenamiento' },
-          { value: 'Operador básico', label: 'Operador básico' },
-          { value: 'Operador intermedio', label: 'Operador intermedio' },
-          { value: 'Operador avanzado', label: 'Operador avanzado' },
-          { value: 'Operador administrativo', label: 'Operador administrativo' },
-          { value: 'Operador administrativo en entrenamiento', label: 'Operador administrativo en entrenamiento' },
-          { value: 'Supervisor de chats', label: 'Supervisor de chats' },
-          { value: 'Supervisor en entrenamiento', label: 'Supervisor en entrenamiento' },
-          { value: 'Supervisor', label: 'Supervisor' },
-          { value: 'Supervisor general', label: 'Supervisor general' },
-          { value: 'Supervisor master', label: 'Supervisor master' },
+          { value: 'Operador En Entrenamiento', label: 'Operador En Entrenamiento' },
+          { value: 'Operador Básico', label: 'Operador Básico' },
+          { value: 'Operador Intermedio', label: 'Operador Intermedio' },
+          { value: 'Operador Avanzado', label: 'Operador Avanzado' },
+          { value: 'Operador Administrativo', label: 'Operador Administrativo' },
+          { value: 'Operador Administrativo En Entrenamiento', label: 'Operador Administrativo En Entrenamiento' },
+          { value: 'Supervisor De Chats', label: 'Supervisor De Chats' },
+          { value: 'Supervisor En Entrenamiento', label: 'Supervisor En Entrenamiento' },
+          { value: 'Supervisor De Turno', label: 'Supervisor De Turno' },
+          { value: 'Supervisor General', label: 'Supervisor General' },
+          { value: 'Supervisor Master', label: 'Supervisor Master' },
         ]}
       />
       <Select
