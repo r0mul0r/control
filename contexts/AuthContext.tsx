@@ -27,10 +27,25 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
     .select('*')
     .eq('id', userId)
     .single()
-    .then(({ data }) => data as Profile | null)
+    .then(({ data, error }) => {
+      if (error) {
+        console.error('[fetchProfile] Error fetching profile:', {
+          userId,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        })
+        return null
+      }
+      return data as Profile | null
+    })
 
   const timeoutPromise = new Promise<null>((resolve) =>
-    setTimeout(() => resolve(null), 6000)
+    setTimeout(() => {
+      console.warn('[fetchProfile] Timeout after 6s for userId:', userId)
+      resolve(null)
+    }, 6000)
   )
 
   return Promise.race([fetchPromise, timeoutPromise])
