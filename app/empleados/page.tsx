@@ -71,8 +71,9 @@ export default function EmpleadosPage() {
     return matchSearch && matchShift && matchActive
   })
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
     <DashboardLayout>
@@ -256,12 +257,12 @@ export default function EmpleadosPage() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-1">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+                  {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} de {filtered.length}
                 </p>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
+                    disabled={safePage === 1}
                     className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     ←
@@ -271,7 +272,7 @@ export default function EmpleadosPage() {
                       key={p}
                       onClick={() => setPage(p)}
                       className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                        p === page
+                        p === safePage
                           ? 'bg-blue-600 border-blue-600 text-white'
                           : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
@@ -281,7 +282,7 @@ export default function EmpleadosPage() {
                   ))}
                   <button
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
+                    disabled={safePage === totalPages}
                     className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     →
@@ -301,7 +302,7 @@ export default function EmpleadosPage() {
         <EmployeeForm
           employee={editingEmployee}
           shifts={shifts}
-          onSuccess={() => { setModalOpen(false); setEditingEmployee(undefined); loadData() }}
+          onSuccess={() => { setModalOpen(false); setEditingEmployee(undefined); setPage(1); loadData() }}
           onCancel={() => { setModalOpen(false); setEditingEmployee(undefined) }}
         />
       </Modal>
