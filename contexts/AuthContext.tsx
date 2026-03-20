@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
@@ -9,7 +9,6 @@ interface AuthContextType {
   user: User | null
   profile: Profile | null
   loading: boolean
-  profileLoading: boolean
   signOut: () => Promise<void>
 }
 
@@ -17,53 +16,86 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
-  profileLoading: false,
   signOut: async () => {},
 })
 
 const supabase = createClient()
 
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  const fetchPromise = supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+    .then(({ data }) => data as Profile | null)
+
+  const timeoutPromise = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), 6000)
+  )
+
+  return Promise.race([fetchPromise, timeoutPromise])
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [profileLoading, setProfileLoading] = useState(false)
-  const initialized = useRef(false)
 
   useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
+    let mounted = true
 
-    // Safety timeout: if onAuthStateChange never fires, unblock after 8s
-    const timeout = setTimeout(() => {
-      setLoading(false)
-      setProfileLoading(false)
-    }, 8000)
+    // Safety net: always unblock after 10s
+    const globalTimeout = setTimeout(() => {
+      if (mounted) setLoading(false)
+    }, 10000)
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const init = async () => {
+      // Step 1: get current session synchronously (doesn't wait for server)
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!mounted) return
+
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      clearTimeout(timeout)
 
       if (currentUser) {
-        setLoading(false)
-        setProfileLoading(true)
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single()
-        setProfile(data as Profile | null)
-        setProfileLoading(false)
-      } else {
-        setProfile(null)
-        setLoading(false)
-        setProfileLoading(false)
+        const profileData = await fetchProfile(currentUser.id)
+        if (mounted) setProfile(profileData)
       }
-    })
+
+      if (mounted) {
+        clearTimeout(globalTimeout)
+        setLoading(false)
+      }
+    }
+
+    init()
+
+    // Step 2: subscribe to live auth changes (sign in / sign out events)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!mounted) return
+
+        const currentUser = session?.user ?? null
+        setUser(currentUser)
+
+        if (currentUser) {
+          const profileData = await fetchProfile(currentUser.id)
+          if (mounted) setProfile(profileData)
+        } else {
+          setProfile(null)
+        }
+
+        if (mounted) {
+          clearTimeout(globalTimeout)
+          setLoading(false)
+        }
+      }
+    )
 
     return () => {
-      clearTimeout(timeout)
+      mounted = false
+      clearTimeout(globalTimeout)
       subscription.unsubscribe()
     }
   }, [])
@@ -73,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, profileLoading, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   )

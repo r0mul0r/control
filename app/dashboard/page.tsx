@@ -20,7 +20,7 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const { user, profile, loading: authLoading, profileLoading } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
   const supabase = createClient()
   const [stats, setStats] = useState<Stats>({ shifts: 0, employees: 0, novelties: 0, shiftChanges: 0 })
@@ -81,7 +81,7 @@ export default function DashboardPage() {
     load()
   }, [profile])
 
-  if (authLoading || profileLoading) return (
+  if (authLoading) return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>
