@@ -43,9 +43,9 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
 
   const timeoutPromise = new Promise<null>((resolve) =>
     setTimeout(() => {
-      console.warn('[fetchProfile] Timeout after 6s for userId:', userId)
+      console.warn('[fetchProfile] Timeout after 4s for userId:', userId)
       resolve(null)
-    }, 6000)
+    }, 4000)
   )
 
   return Promise.race([fetchPromise, timeoutPromise])
@@ -64,6 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (mounted) setLoading(false)
     }, 10000)
 
+    let initDone = false
+
     const init = async () => {
       // Step 1: get current session synchronously (doesn't wait for server)
       const { data: { session } } = await supabase.auth.getSession()
@@ -80,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (mounted) {
         clearTimeout(globalTimeout)
+        initDone = true
         setLoading(false)
       }
     }
@@ -87,9 +90,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     init()
 
     // Step 2: subscribe to live auth changes (sign in / sign out events)
+    // Skip INITIAL_SESSION since init() already handles it
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (!mounted) return
+        if (event === 'INITIAL_SESSION') {
+          // Already handled by init(), only unblock if init() somehow didn't
+          if (!initDone) {
+            clearTimeout(globalTimeout)
+            setLoading(false)
+          }
+          return
+        }
 
         const currentUser = session?.user ?? null
         setUser(currentUser)

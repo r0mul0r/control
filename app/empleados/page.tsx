@@ -33,13 +33,16 @@ export default function EmpleadosPage() {
   const PAGE_SIZE = 10
 
   const loadData = async () => {
-    const [empsRes, shiftsRes] = await Promise.all([
-      supabase.from('employees').select('*, shift:shifts(*)').order('full_name'),
-      supabase.from('shifts').select('*').order('name'),
-    ])
-    setEmployees((empsRes.data as EmployeeWithShift[]) || [])
-    setShifts((shiftsRes.data as Shift[]) || [])
-    setLoading(false)
+    try {
+      const [empsRes, shiftsRes] = await Promise.all([
+        supabase.from('employees').select('*, shift:shifts(*)').order('full_name'),
+        supabase.from('shifts').select('*').order('name'),
+      ])
+      setEmployees((empsRes.data as EmployeeWithShift[]) || [])
+      setShifts((shiftsRes.data as Shift[]) || [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { loadData() }, [])
